@@ -1,5 +1,5 @@
 pandas
-groq==0.5.0
+groq>=0.18.0
 streamlit==1.31.0
 python-dotenv==1.0.0
 matplotlib==3.8.2

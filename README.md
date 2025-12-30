@@ -26,7 +26,7 @@ Construir un agente que:
 |------------|------------|---------------|
 | Lenguaje | Python 3.10+ | Ecosistema de datos maduro |
 | Datos | Pandas | Estándar para manipulación tabular |
-| LLM | Groq API (Llama 3.1 70B) | Gratis, rápido, buena generación de código |
+| LLM | Groq API (Llama 3.3 70B) | Gratis, rápido, buena generación de código |
 | Interfaz | Streamlit | Prototipado rápido, visual, sin frontend |
 | Gráficos | Matplotlib/Plotly | Integración nativa con Streamlit |
 | Entorno | venv | Sin dependencias externas complejas |
@@ -284,14 +284,14 @@ def generate_schema_description(df: pd.DataFrame) -> str:
 **Funcionalidad:**
 - Clase `LLMClient` que encapsula la API de Groq
 - Método `query(prompt: str, system: str = None) -> str`
-- Modelo: `llama-3.1-70b-versatile`
+- Modelo: `llama-3.3-70b-versatile`
 - Manejo de rate limits con retry exponencial
 - Logging de tokens usados
 
 **Interfaz:**
 ```python
 class LLMClient:
-    def __init__(self, api_key: str = None, model: str = "llama-3.1-70b-versatile"):
+    def __init__(self, api_key: str = None, model: str = "llama-3.3-70b-versatile"):
         """Inicializa cliente. Si no hay key, lee de .env"""
         pass
     

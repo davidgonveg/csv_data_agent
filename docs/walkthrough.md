@@ -6,29 +6,40 @@ This agent allows you to load CSV files and ask questions in natural language. I
 ## Implementation Details
 - **Core**: Python 3.10+
 - **UI**: Streamlit
-- **LLM**: Groq API (Llama 3.1 70B Versatile)
+- **LLM**: Groq API (Llama 3.3 70B Versatile)
 - **Viz**: Plotly
 - **Security**: Restricted `exec()` environment
 
 ## How to Run
 
 ### 1. Requirements
-Ensure you have the virtual environment set up and activated:
-```bash
+Ensure you have the virtual environment set up and activated.
+
+**PowerShell:**
+```powershell
 cd csv_data_agent
-venv\Scripts\activate
+.\venv\Scripts\Activate.ps1
 ```
+
+**Bash (Git Bash / WSL):**
+```bash
+source venv/bin/activate
+```
+
+> [!IMPORTANT]
+> The first time you run `pip install`, it might take a few minutes to compile dependencies. Wait until it finishes completely before running the app.
 
 ### 2. Configure API Key
 The app will ask for your Groq API Key in the sidebar if not set in `.env`.
-If you want to set it permanently:
-1. Create a `.env` file (copy from `.env.example` if exists, or just create new).
-2. Add: `GROQ_API_KEY=gsk_...`
+To set it permanently:
+1. Open `.env` file.
+2. Add your key: `GROQ_API_KEY=gsk_...`
 
 ### 3. Launch the App
-```bash
+```powershell
 streamlit run app.py
 ```
+If you get an error that `streamlit` is not found, verify that the installation has finished and the environment is active.
 The application will open in your browser at `http://localhost:8501`.
 
 ## Features

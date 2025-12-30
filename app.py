@@ -32,7 +32,9 @@ if "conversation" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = [] # For UI display
 if "api_key" not in st.session_state:
-    st.session_state.api_key = os.getenv("GROQ_API_KEY")
+    # Try validation from env first
+    env_key = os.getenv("GROQ_API_KEY")
+    st.session_state.api_key = env_key if env_key else None
 
 # --- Sidebar ---
 with st.sidebar:

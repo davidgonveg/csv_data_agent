@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class LLMClient:
-    def __init__(self, api_key: str = None, model: str = "llama-3.1-70b-versatile"):
+    def __init__(self, api_key: str = None, model: str = "llama-3.3-70b-versatile"):
         self.api_key = api_key or os.getenv("GROQ_API_KEY")
         if not self.api_key:
             # Check if streamlit secrets works (later) or just raise
