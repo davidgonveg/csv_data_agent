@@ -7,6 +7,7 @@ REGLAS ESTRICTAS DE RESPUESTA:
 3. El DataFrame ya está cargado en la variable `df`.
 4. El resultado final DEBE ser asignado a la variable `result`.
 5. NO uses `print()`, la interfaz mostrará el contenido de `result`.
+6. Librerías disponibles: `pd` (pandas), `np` (numpy), `px` (plotly.express), `go` (plotly.graph_objects). NO necesitas importarlas.
 
 MANEJO DE FECHAS:
 - Asegúrate de convertir columnas a datetime si es necesario: `df['col'] = pd.to_datetime(df['col'])`.

@@ -66,6 +66,9 @@ def execute_code(code: str, df: pd.DataFrame) -> ExecutionResult:
     stdout_buffer = io.StringIO()
     
     try:
+
+
+        
         with contextlib.redirect_stdout(stdout_buffer):
             # Execute
             exec(code, allowed_globals)
