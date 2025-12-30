@@ -28,3 +28,11 @@ Smart loader that handles encoding/separator detection.
 ### `generate_schema_description(df) -> str`
 Creates one-line-per-column text summary.
 - **Format**: `Column Name (Type), Range: [min-max], Samples: a, b, c`
+
+## src.report_generator
+
+### `generate_html_report(messages: list) -> str`
+Generates a standalone HTML string from the conversation history.
+- **Args**: `messages` list (from `st.session_state.messages`).
+- **Features**: Embeds code blocks, tables, and renders Plotly figures as interactive HTML divs.
+- **Returns**: HTML string ready for download.

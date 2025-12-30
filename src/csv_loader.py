@@ -76,7 +76,10 @@ def _convert_datetimes(df: pd.DataFrame) -> pd.DataFrame:
                 if first_valid.strip().startswith('20') or '-' in first_valid or '/' in first_valid:
                     try:
                         # Attempt conversion
-                        df[col] = pd.to_datetime(df[col], errors='ignore')
-                    except:
+                        # new behavior: try catch instead of errors='ignore'
+                        new_col = pd.to_datetime(df[col], errors='raise')
+                        df[col] = new_col
+                    except (ValueError, TypeError, pd.errors.ParserError):
+                        # Keep original if conversion fails
                         pass
     return df

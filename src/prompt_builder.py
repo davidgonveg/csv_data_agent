@@ -47,3 +47,28 @@ def build_user_prompt(question: str) -> str:
     """Constructs the user prompt."""
     # In future we can append history here
     return f"Pregunta del usuario: {question}\n\nGenera el código Python necesario:"
+
+CORRECTION_PROMPT_TEMPLATE = """
+El código generado anteriormente falló con el siguiente error:
+{error_message}
+
+Código fallido:
+```python
+{wrong_code}
+```
+
+Por favor, revisa el error y genera el código Python CORREGIDO.
+RECUERDA:
+1. SOLO devuelve el código corregido.
+2. El DataFrame sigue en la variable `df`.
+3. Asigna el resultado a `result`.
+"""
+
+def build_correction_prompt(question: str, error_message: str, wrong_code: str) -> str:
+    """Constructs a prompt to fix a previous execution error."""
+    base_prompt = f"Pregunta original: {question}\n\n"
+    correction_instruction = CORRECTION_PROMPT_TEMPLATE.format(
+        error_message=error_message,
+        wrong_code=wrong_code
+    )
+    return base_prompt + correction_instruction

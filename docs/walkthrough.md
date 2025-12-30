@@ -47,6 +47,7 @@ The application will open in your browser at `http://localhost:8501`.
 - **Auto-Timestamps**: Automatically identifies and converts date/time columns for correct plotting.
 - **Schema Analysis**: Automatically extracts metadata to help the LLM understand your data.
 - **Interactive Charts**: Ask for "plots" or "graphs" to see interactive Plotly visualizations.
+- **Self-Healing**: If the generated code fails, the system automatically feeds the error back to the AI to retry correction (max 2 retries).
 - **Code Inspection**: Expand the "Ver código" block in the chat to see exactly what Python code was generated.
 
 ## Verification

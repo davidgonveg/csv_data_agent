@@ -14,14 +14,15 @@ El proyecto se encuentra en una versión **estable y funcional**.
 *   **Análisis de Esquema**: Extracción automática de metadatos para "entender" los datos antes de consultarlos.
 *   **Motor LLM**: Integración con **Groq (Llama 3.3 70B)** para generación rápida de código.
 *   **Ejecución Segura**: Sandbox local que ejecuta Pandas/Numpy/Plotly bloqueando acceso al sistema (os, sys).
+*   **Auto-Corrección (Self-Healing)**: Sistema de reintento automático. Si el código falla, se realimenta el error a la IA para que lo corrija (hasta 2 reintentos).
+*   **Exportación de Reportes**: Generación de reportes HTML con el historial completo de chat, tablas y gráficos.
 *   **Interfaz Gráfica**: App completa en **Streamlit** con chat, historial y carga de archivos.
 *   **Visualización**: Generación de gráficos interactivos con **Plotly**.
 *   **Documentación**: Guías técnicas y de uso completas en `/docs`.
 
 ### 🚧 Pendiente / Mejoras Futuras
 *   Soporte para múltiples archivos simultáneos.
-*   Modo "auto-corrección" si el código generado falla a la primera.
-*   Exportación de reportes a PDF/HTML.
+*   Modo de análisis comparativo avanzado.
 
 ---
 
@@ -96,7 +97,22 @@ Construir un agente que:
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
 │  │ Code        │  │ Safe        │  │ Result Formatter    │  │
 │  │ Extractor   │──▶ Executor    │──▶                     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+│  └─────────────┘  └──────┬──────┘  └─────────────────────┘  │
+│                          │ ▲                                │
+│                          ▼ │ (Error Feedback Loop)          │
+│                   ┌─────────────┐                           │
+│                   │ Self-Healing│                           │
+│                   │ Logic       │                           │
+│                   └─────────────┘                           │
+└─────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    OUTPUT & EXPORT                          │
+│  ┌─────────────┐  ┌─────────────┐                           │
+│  │ HTML Report │  │ Interactive │                           │
+│  │ Generator   │  │ UI          │                           │
+│  └─────────────┘  └─────────────┘                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 

@@ -8,10 +8,11 @@ from dotenv import load_dotenv
 from src.csv_loader import load_csv
 from src.schema_analyzer import analyze_schema, generate_schema_description
 from src.llm_client import LLMClient
-from src.prompt_builder import build_system_prompt, build_user_prompt
+from src.prompt_builder import build_system_prompt, build_user_prompt, build_correction_prompt
 from src.code_executor import execute_code
 from src.result_formatter import format_result
 from src.conversation import ConversationManager
+from src.report_generator import generate_html_report
 
 # Load environment variables
 load_dotenv()
@@ -87,10 +88,23 @@ with st.sidebar:
             st.json(st.session_state.schema_dict)
 
     st.divider()
-    if st.button("🗑️ Limpiar Conversación"):
-        st.session_state.conversation.clear()
-        st.session_state.messages = []
-        st.rerun()
+    st.divider()
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🗑️ Limpiar"):
+            st.session_state.conversation.clear()
+            st.session_state.messages = []
+            st.rerun()
+    
+    with col2:
+        if st.session_state.messages:
+            report_html = generate_html_report(st.session_state.messages)
+            st.download_button(
+                label="📥 Reporte",
+                data=report_html,
+                file_name="analisis.html",
+                mime="text/html"
+            )
 
 # --- Main Interface ---
 st.title("CSV Data Agent 🕵️‍♀️")
@@ -143,23 +157,47 @@ else:
                 try:
                     # A. Build Prompt
                     system_msg = build_system_prompt(st.session_state.schema_desc)
-                    # We could inject history here if supported by prompt builder
                     
-                    # B. Get Code from LLM
-                    code_response = llm.query(prompt, system=system_msg)
+                    # --- RETRY LOOP START ---
+                    max_retries = 2
+                    current_try = 0
+                    result_obj = None
+                    final_code = ""
+                    last_error = ""
+
+                    while current_try <= max_retries:
+                        if current_try == 0:
+                            # First attempt
+                            prompt_to_send = prompt
+                        else:
+                            # Correction attempt
+                            st.warning(f"⚠️ Intento {current_try}: Hubo un error, reintentando...")
+                            prompt_to_send = build_correction_prompt(prompt, last_error, final_code)
+                        
+                        # B. Get Code from LLM
+                        code_response = llm.query(prompt_to_send, system=system_msg)
+                        
+                        # Clean code (remove markdown backticks if present)
+                        code = code_response.replace("```python", "").replace("```", "").strip()
+                        final_code = code # Store for potential correction prompt
+                        
+                        # C. Execute Code
+                        result_obj = execute_code(code, st.session_state.df)
+                        
+                        if result_obj.success:
+                            break # Success!
+                        else:
+                            last_error = result_obj.error
+                            current_try += 1
                     
-                    # Clean code (remove markdown backticks if present)
-                    code = code_response.replace("```python", "").replace("```", "").strip()
-                    
-                    # C. Execute Code
-                    result_obj = execute_code(code, st.session_state.df)
+                    # --- RETRY LOOP END ---
                     
                     # D. Format Output
                     formatted = format_result(result_obj)
                     
                     # E. Display output
                     if formatted["type"] == "error":
-                        st.error("Error en la ejecución:")
+                        st.error("Error en la ejecución (incluso tras reintentos):")
                         st.error(formatted["value"])
                         content_to_save = f"Error: {formatted['value']}"
                     
@@ -171,7 +209,7 @@ else:
                             "role": "assistant", 
                             "content": "Aquí tienes el gráfico:", 
                             "image": formatted["value"],
-                            "code": code
+                            "code": final_code
                         })
                         # Avoid double appending
                         st.rerun() 
@@ -183,7 +221,7 @@ else:
                             "role": "assistant", 
                             "content": "Aquí están los datos:", 
                             "dataframe": formatted["value"],
-                            "code": code
+                            "code": final_code
                         })
                         st.rerun()
 
@@ -193,11 +231,12 @@ else:
                         st.session_state.messages.append({
                             "role": "assistant", 
                             "content": formatted["value"],
-                            "code": code
+                            "code": final_code
                         })
+                        st.rerun()
 
                     # Add to context history
-                    st.session_state.conversation.add_turn(prompt, code, content_to_save)
+                    st.session_state.conversation.add_turn(prompt, final_code, content_to_save)
 
                 except Exception as e:
                     st.error(f"Ocurrió un error inesperado: {e}")
