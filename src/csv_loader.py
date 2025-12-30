@@ -1,68 +1,82 @@
 import pandas as pd
 import io
+import csv
 from typing import Union
 
 def load_csv(file: Union[str, io.BytesIO]) -> pd.DataFrame:
     """
-    Load a CSV file from a path or BytesIO object into a pandas DataFrame.
-    
-    Args:
-        file: File path (str) or BytesIO object.
-        
-    Returns:
-        pd.DataFrame: Loaded data.
-        
-    Raises:
-        ValueError: If file cannot be read.
+    Load a CSV file with robust handling for:
+    - Extra trailing commas/columns (misalignment)
+    - Encoding detection
+    - Date parsing
     """
     try:
-        # Try default encoding/separator first
-        # We use low_memory=False to avoid mixed type warnings on large files, 
-        # though for this agent we expect manageable sizes or use chunking conceptually.
-        # Here we just load fully as per requirements.
-        
-        # Helper to read with different encodings if utf-8 fails
-        encodings = ['utf-8', 'latin-1', 'cp1252']
-        separators = [',', ';', '\t']
-        
-        for encoding in encodings:
-            for sep in separators:
-                try:
-                    if isinstance(file, (str, io.BytesIO)):
-                        # If it's BytesIO, we need to reset pointer for retries, 
-                        # but pandas read_csv usually handles the stream. 
-                        # However, resetting is safer if we reuse the object.
-                        if hasattr(file, 'seek'):
-                            file.seek(0)
-                            
-                    df = pd.read_csv(file, sep=sep, encoding=encoding, low_memory=False)
-                    
-                    # Basic heuristic: if we have 1 column but arguably should have more, 
-                    # maybe the separator is wrong. 
-                    # But single column CSVs exist. 
-                    # We'll assume if it parses without error, it's "valid" enough for now.
-                    # A stricter check could be: if len(df.columns) == 1 and sep == ',', try ';'
-                    
-                    if len(df.columns) > 1:
-                        return df
-                    
-                    # If 1 column, store it as a fallback but keep trying other separators
-                    # actually, sticking to the first successful parse is standard unless we define strict validation.
-                    # Let's return only if it looks "good" (e.g. >1 column), otherwise continue search.
-                    # If we run out of options, we return the 1-column version.
-                    
-                except UnicodeDecodeError:
-                    continue
-                except pd.errors.ParserError:
-                    continue
-                except Exception:
-                    continue
-        
-        # If we are here, we might have skipped a 1-column valid CSV or failed completely.
-        # Let's try one last robust attempt with default settings and raise if fails.
-        if hasattr(file, 'seek'):
+        # 1. Determine Separation & Header Count
+        # We need to peek at the first line to count headers
+        if isinstance(file, str):
+            with open(file, 'r', encoding='latin-1') as f:
+                first_line = f.readline()
+                file_obj = file
+        else:
             file.seek(0)
-        return pd.read_csv(file, encoding='latin-1') # Fallback to latin-1 which is permissive
+            first_line = file.read().decode('latin-1').splitlines()[0]
+            file.seek(0)
+            file_obj = file
+        
+        # Simple detector for delimiter
+        sep = ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+        
+        # Count headers
+        headers = first_line.split(sep)
+        n_cols = len(headers)
+        
+        # 2. Load with strict column usage
+        # usecols=range(n_cols) forces pandas to read only the first N columns, 
+        # ignoring any trailing extra delimiters in the data rows.
+        # index_col=False forces it NOT to use the first column as index even if counts mismatch.
+        try:
+           df = pd.read_csv(
+               file_obj, 
+               sep=sep, 
+               encoding='utf-8', 
+               usecols=range(n_cols),
+               index_col=False,
+               low_memory=False
+           )
+        except UnicodeDecodeError:
+            if hasattr(file_obj, 'seek'): file_obj.seek(0)
+            df = pd.read_csv(
+               file_obj, 
+               sep=sep, 
+               encoding='latin-1', 
+               usecols=range(n_cols),
+               index_col=False,
+               low_memory=False
+           )
+           
+        # 3. Post-Process
+        df = _convert_datetimes(df)
+        
+        return df
 
     except Exception as e:
         raise ValueError(f"Failed to load CSV: {str(e)}")
+
+def _convert_datetimes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Attempts to convert object/string columns to datetime.
+    """
+    for col in df.columns:
+        if df[col].dtype == 'object':
+            # Heuristic: Check first non-null value
+            first_valid = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+            if first_valid and isinstance(first_valid, str):
+                # Check if looks like date
+                # Very naive check: starts with 20xx
+                if first_valid.strip().startswith('20') or '-' in first_valid or '/' in first_valid:
+                    try:
+                        # Attempt conversion
+                        df[col] = pd.to_datetime(df[col], errors='ignore')
+                    except:
+                        pass
+    return df

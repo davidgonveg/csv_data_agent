@@ -43,7 +43,8 @@ If you get an error that `streamlit` is not found, verify that the installation 
 The application will open in your browser at `http://localhost:8501`.
 
 ## Features
-- **Smart CSV Load**: Auto-detects separators and encodings.
+- **Smart CSV Load**: Auto-detects separators, encodings, and fixes common misalignment issues (trailing commas).
+- **Auto-Timestamps**: Automatically identifies and converts date/time columns for correct plotting.
 - **Schema Analysis**: Automatically extracts metadata to help the LLM understand your data.
 - **Interactive Charts**: Ask for "plots" or "graphs" to see interactive Plotly visualizations.
 - **Code Inspection**: Expand the "Ver código" block in the chat to see exactly what Python code was generated.

@@ -16,7 +16,7 @@ TIPOS DE RESPUESTA ESPERADOS:
 - Si la pregunta pide un número o texto -> `result = ...`
 - Si la pregunta pide una tabla/filas -> `result = df[...]`
 - Si la pregunta pide un GRÁFICO -> Usa Plotly Express.
-  - Importa plotly.express como px
+  - NO importes plotly.express, usa `px` directamente.
   - Crea la figura: `fig = px.line(...)` o `fig = px.bar(...)`
   - Asigna la figura a `result`: `result = fig`
 
@@ -32,8 +32,8 @@ result = len(df)
 
 Pregunta: Gráfico de barras de ventas por mes
 ```python
-import plotly.express as px
 # Asumiendo que existe columna 'mes' y 'ventas'
+# NO importar nada
 fig = px.bar(df, x='mes', y='ventas', title='Ventas por Mes')
 result = fig
 ```

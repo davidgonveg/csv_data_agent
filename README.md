@@ -9,7 +9,8 @@ Sistema de análisis de datos conversacional que permite hacer preguntas en leng
 El proyecto se encuentra en una versión **estable y funcional**.
 
 ### ✅ Implementado (Ready)
-*   **Lectura Inteligente**: Carga de CSVs con detección automática de encoding y separadores.
+*   **Lectura Inteligente Robust**: Carga de CSVs con detección automática de encoding, separadores y corrección de desalineación de columnas (manejo de comas extra).
+*   **Conversión Automática**: Detección y conversión automática de columnas de fecha/hora.
 *   **Análisis de Esquema**: Extracción automática de metadatos para "entender" los datos antes de consultarlos.
 *   **Motor LLM**: Integración con **Groq (Llama 3.3 70B)** para generación rápida de código.
 *   **Ejecución Segura**: Sandbox local que ejecuta Pandas/Numpy/Plotly bloqueando acceso al sistema (os, sys).

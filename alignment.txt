@@ -1,0 +1,49 @@
+Header Count: 43
+Value Count:  44
+
+IDX   | HEADER                         | VALUE
+------------------------------------------------------------
+0     | time                           | 2025-10-09 16:51:35.023780
+1     | true_sector                    | 
+2     | true_aprox_distance            | 
+3     | true_n_drones                  | 
+4     | true_n_protocols               | 
+5     | true_protocol_types            | 
+6     | likelihood                     | [-1]
+7     | decission                      | [-1]
+8     | distance                       | []
+9     | Fc                             | 2410560742.5500736
+10    | deviceserial                   | 
+11    | sectorid                       | 1
+12    | sector_v                       | 
+13    | uuid                           | 
+14    | macAP                          | 
+15    | manufacturerAP                 | 
+16    | macClient                      | 
+17    | manufacturerClient             | 
+18    | protocolType                   | Skylink
+19    | threshold                      | 
+20    | shooting_ratio                 | 
+21    | power                          | -67.62969343342274
+22    | latitude                       | 
+23    | longitude                      | 
+24    | altitude                       | 
+25    | droneID                        | 
+26    | operatorId                     | 
+27    | drone_latitude                 | 
+28    | drone_longitude                | 
+29    | drone_altitude                 | 
+30    | operator_latitude              | 
+31    | operator_longitude             | 
+32    | drone_ID                       | 
+33    | operator_ID                    | 
+34    | serial_number                  | 
+35    | drone_type                     | 
+36    | height                         | 
+37    | speed                          | 
+38    | direction                      | 
+39    | vertical_speed                 | 
+40    | object_id                      | 
+41    | north_speed                    | 
+42    | east_speed                     | 
+43    | ---                            | 
