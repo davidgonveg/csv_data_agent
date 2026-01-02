@@ -13,6 +13,7 @@ from src.code_executor import execute_code
 from src.result_formatter import format_result
 from src.conversation import ConversationManager
 from src.report_generator import generate_html_report
+from src.ssh_manager import SSHManager
 
 # Load environment variables
 load_dotenv()
@@ -57,15 +58,43 @@ with st.sidebar:
 
     # File Selection Mode
     st.header("1. Cargar Datos")
-    data_source = st.radio("Fuente de datos:", ["Subir Archivo", "Archivo Local"])
+    data_source = st.radio("Fuente de datos:", ["Subir Archivo", "Archivo Local", "Servidor Remoto"])
 
     uploaded_file = None
     local_file_path = None
+    remote_file_path = None
+    ssh_manager = None
 
     if data_source == "Subir Archivo":
         uploaded_file = st.file_uploader("Sube tu archivo CSV", type=["csv", "txt"])
-    else:
+        
+    elif data_source == "Archivo Local":
         local_file_path = st.text_input("Ruta absoluta del archivo (ej: C:/datos/data.csv)")
+        
+    elif data_source == "Servidor Remoto":
+        try:
+            ssh_manager = SSHManager()
+            # Hardcoded remote path as requested
+            remote_base_dir = "/home/innovacion/Documents/inteligencia_rf/datos"
+            
+            with st.spinner("Conectando al servidor..."):
+                files = ssh_manager.list_files(remote_base_dir)
+                
+            if files:
+                selected_filename = st.selectbox("Selecciona un archivo:", files)
+                if selected_filename:
+                    # Force forward slashes for Linux remote
+                    remote_file_path = f"{remote_base_dir}/{selected_filename}"
+                    print(f"DEBUG: Remote file selected: {remote_file_path}")
+            else:
+                st.warning("No se encontraron archivos CSV en el directorio remoto.")
+                print("DEBUG: No CSV files found in remote directory.")
+                
+        except Exception as e:
+            st.error(f"Error SSH: {e}")
+            print(f"DEBUG: SSH Error: {e}")
+            st.info("Verifica tus credenciales en el archivo .env")
+
         
     # Live Mode Configuration
     st.divider()
@@ -94,18 +123,35 @@ with st.sidebar:
             current_mtime = os.path.getmtime(local_file_path)
         else:
             st.sidebar.error("El archivo no existe.")
+            
+    elif data_source == "Servidor Remoto" and remote_file_path and ssh_manager:
+        # For remote, we load the file object
+        # We delay validation to the loading block
+        file_to_load = "REMOTE_placeholder" 
 
     if file_to_load:
         try:
              # Check if we need to reload
             should_reload = False
             
-            # Simple check: if df is None, or filename changed, or (Live Mode ON AND mtime changed)
+            # Identify source signature
+            if data_source == "Servidor Remoto":
+                 current_source_sig = f"ssh:{remote_file_path}"
+                 # Check mtime via SSH if in live mode or if check logic needed
+                 if live_mode:
+                     try:
+                         current_mtime = ssh_manager.get_mtime(remote_file_path)
+                     except:
+                         current_mtime = 0
+                 else:
+                     # If not live, maybe just trust it or force reload if different file
+                     # Use 0 or current timestamp if we want to force load only on change
+                     current_mtime = 0 
+            else:
+                current_source_sig = str(file_to_load.name) if hasattr(file_to_load, 'name') else str(file_to_load)
+            
             last_source = st.session_state.get('last_source', '')
             last_mtime = st.session_state.get('last_mtime', 0)
-            
-            # Identify source signature
-            current_source_sig = str(file_to_load.name) if hasattr(file_to_load, 'name') else str(file_to_load)
             
             if st.session_state.df is None:
                 should_reload = True
@@ -115,8 +161,20 @@ with st.sidebar:
                 should_reload = True
             
             if should_reload:
+                print(f"DEBUG: Reloading data from {current_source_sig}")
                 with st.spinner("Cargando y analizando..."):
-                    df = load_csv(file_to_load)
+                    
+                    # Actual loading logic
+                    if data_source == "Servidor Remoto":
+                         # Download file object
+                         print(f"DEBUG: Downloading remote file: {remote_file_path}")
+                         file_obj = ssh_manager.get_file(remote_file_path)
+                         df = load_csv(file_obj)
+                         if ssh_manager: ssh_manager.close()
+                    else:
+                        print(f"DEBUG: Loading local file: {file_to_load}")
+                        df = load_csv(file_to_load)
+                        
                     st.session_state.df = df
                     st.session_state.last_source = current_source_sig
                     st.session_state.last_mtime = current_mtime
