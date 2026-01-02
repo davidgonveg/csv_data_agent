@@ -55,29 +55,121 @@ with st.sidebar:
 
     st.divider()
 
-    # File Upload
+    # File Selection Mode
     st.header("1. Cargar Datos")
-    uploaded_file = st.file_uploader("Sube tu archivo CSV", type=["csv", "txt"])
+    data_source = st.radio("Fuente de datos:", ["Subir Archivo", "Archivo Local"])
+
+    uploaded_file = None
+    local_file_path = None
+
+    if data_source == "Subir Archivo":
+        uploaded_file = st.file_uploader("Sube tu archivo CSV", type=["csv", "txt"])
+    else:
+        local_file_path = st.text_input("Ruta absoluta del archivo (ej: C:/datos/data.csv)")
+        
+    # Live Mode Configuration
+    st.divider()
+    live_mode = st.toggle("🔴 Modo LIVE", value=False)
+    refresh_interval = 5
+    if live_mode:
+        refresh_interval = st.slider("Intervalo de actualización (seg)", 2, 60, 5)
+        st.caption(f"Actualizando cada {refresh_interval}s si hay cambios.")
     
-    if uploaded_file is not None:
+    # Store settings in session state
+    st.session_state.live_mode = live_mode
+    st.session_state.refresh_interval = refresh_interval
+    
+    # Logic to load data
+    file_to_load = None
+    current_mtime = None
+
+    if data_source == "Subir Archivo" and uploaded_file is not None:
+        file_to_load = uploaded_file
+        # Pseudo mtime for uploaded file
+        current_mtime = getattr(uploaded_file, 'size', 0) 
+    
+    elif data_source == "Archivo Local" and local_file_path:
+        if os.path.exists(local_file_path):
+            file_to_load = local_file_path
+            current_mtime = os.path.getmtime(local_file_path)
+        else:
+            st.sidebar.error("El archivo no existe.")
+
+    if file_to_load:
         try:
-            # Only reload if it's a new file or df is not set
-            # Simple check: assuming if user re-uploads, they want to reload
-            if st.session_state.df is None or getattr(uploaded_file, 'name', '') != st.session_state.get('last_filename', ''):
+             # Check if we need to reload
+            should_reload = False
+            
+            # Simple check: if df is None, or filename changed, or (Live Mode ON AND mtime changed)
+            last_source = st.session_state.get('last_source', '')
+            last_mtime = st.session_state.get('last_mtime', 0)
+            
+            # Identify source signature
+            current_source_sig = str(file_to_load.name) if hasattr(file_to_load, 'name') else str(file_to_load)
+            
+            if st.session_state.df is None:
+                should_reload = True
+            elif current_source_sig != last_source:
+                should_reload = True
+            elif live_mode and current_mtime != last_mtime:
+                should_reload = True
+            
+            if should_reload:
                 with st.spinner("Cargando y analizando..."):
-                    df = load_csv(uploaded_file)
+                    df = load_csv(file_to_load)
                     st.session_state.df = df
-                    st.session_state.last_filename = uploaded_file.name
+                    st.session_state.last_source = current_source_sig
+                    st.session_state.last_mtime = current_mtime
                     
                     # Generate Schema
                     st.session_state.schema_desc = generate_schema_description(df)
                     st.session_state.schema_dict = analyze_schema(df)
                     
-                    # Reset conversation on new file
-                    st.session_state.conversation.clear()
-                    st.session_state.messages = []
+                    # Clear conversation ONLY if source changed entirely, potentially? 
+                    # If it's just an update (live mode), we might want to KEEP history but update last charts.
+                    # But for now, let's keep the existing logic: Reset if new file, strict update if just refresh.
                     
-                st.success(f"Cargado: {len(df)} filas")
+                    if current_source_sig != last_source:
+                        # Full reset for new file
+                        st.session_state.conversation.clear()
+                        st.session_state.messages = []
+                    
+                    elif live_mode:
+                         # LIVE UPDATE LOGIC: Re-run assistant code blocks
+                        st.toast("Datos actualizados. Refrescando gráficos...", icon="🔄")
+                        
+                        # Iterate backwards to find last assistant message with code? 
+                        # Or update ALL charts? The user requested: "los gráficos que se han hecho y tal se actualicen"
+                        # We should re-run all assistant messages that have code.
+                        
+                        updated_messages = []
+                        for msg in st.session_state.messages:
+                            if msg["role"] == "assistant" and "code" in msg and msg["code"]:
+                                try:
+                                    # Re-execute
+                                    res_obj = execute_code(msg["code"], df)
+                                    if res_obj.success:
+                                        # Format again
+                                        formatted = format_result(res_obj)
+                                        # Update msg content
+                                        if formatted["type"] == "plot":
+                                            msg["image"] = formatted["value"]
+                                            msg["content"] = "Gráfico actualizado:" # Update text too?
+                                        elif formatted["type"] == "dataframe":
+                                            msg["dataframe"] = formatted["value"]
+                                            msg["content"] = f"Datos actualizados ({len(formatted['value'])} filas):"
+                                        else:
+                                            msg["content"] = str(formatted["value"])
+                                except Exception as e:
+                                    msg["content"] += f"\n(Error actualizando: {e})"
+                            
+                            updated_messages.append(msg)
+                        st.session_state.messages = updated_messages
+
+                if current_source_sig != last_source:
+                    st.success(f"Cargado: {len(df)} filas")
+                else:
+                    st.toast(f"Reloaded: {len(df)} rows")
 
         except Exception as e:
             st.error(f"Error cargando archivo: {e}")
@@ -240,3 +332,8 @@ else:
 
                 except Exception as e:
                     st.error(f"Ocurrió un error inesperado: {e}")
+
+# --- Auto-Refresh ---
+if st.session_state.get('live_mode', False):
+    time.sleep(st.session_state.get('refresh_interval', 5))
+    st.rerun()
